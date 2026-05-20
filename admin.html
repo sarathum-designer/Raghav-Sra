@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — Raghav Realty</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --red: #C0392B; --red-dark: #96281B; --red-light: #FDECEA;
+      --black: #1A1A1A; --white: #FFFFFF;
+      --gray-bg: #F5F5F5; --gray-border: #E0E0E0; --text-muted: #666;
+      --green: #27AE60; --orange: #E67E22; --blue: #2980B9;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--gray-bg); min-height: 100vh; }
+    /* ── Login screen ── */
+    #loginScreen {
+      min-height: 100vh; display: flex; flex-direction: column;
+    }
+    #loginScreen header {
+      background: var(--red); padding: 14px 32px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .logo-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .logo-name { color: var(--white); font-size: 18px; font-weight: 700; }
+    .logo-sub  { color: rgba(255,255,255,0.75); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+    #loginScreen main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
+    .card { background: var(--white); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 40px; width: 100%; max-width: 400px; }
+    .card-title { font-size: 20px; font-weight: 700; color: var(--black); margin-bottom: 6px; }
+    .card-sub   { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--black); margin-bottom: 6px; }
+    input[type="password"], input[type="text"] {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-border);
+      border-radius: 6px; font-size: 14px; color: var(--black); background: var(--white); transition: border-color 0.15s;
+    }
+    input:focus { outline: none; border-color: var(--red); }
+    .btn { padding: 11px 20px; background: var(--red); color: var(--white); border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .btn:hover:not(:disabled) { background: var(--red-dark); }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-full { width: 100%; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+    .btn-outline { background: transparent; color: var(--red); border: 1.5px solid var(--red); }
+    .btn-outline:hover { background: var(--red-light); }
+    .btn-green { background: var(--green); }
+    .btn-green:hover { background: #1E8449; }
+    .error-box { background: var(--red-light); color: var(--red); border: 1px solid #F5C6C2; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+    footer { text-align: center; padding: 16px; font-size: 12px; color: #AAA; border-top: 1px solid var(--gray-border); background: var(--white); }
+
+    /* ── Dashboard ── */
+    #dashboard { display: none; }
+    #dashboard header {
+      background: var(--black); padding: 14px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 100;
+    }
+    #dashboard header .logo-name { font-size: 16px; }
+    .admin-tag { background: var(--red); color: var(--white); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+    .stats-row { display: flex; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+    .stat-card { background: var(--white); border-radius: 8px; border: 1px solid var(--gray-border); padding: 16px 20px; flex: 1; min-width: 140px; }
+    .stat-num  { font-size: 28px; font-weight: 700; color: var(--black); }
+    .stat-label{ font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .stat-card.red   .stat-num { color: var(--red); }
+    .stat-card.green .stat-num { color: var(--green); }
+    .stat-card.orange.stat-num { color: var(--orange); }
+
+    /* Toolbar */
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .toolbar h2 { font-size: 18px; font-weight: 700; color: var(--black); flex: 1; }
+    .search-input {
+      padding: 8px 14px; border: 1.5px solid var(--gray-border); border-radius: 6px;
+      font-size: 13px; width: 220px; color: var(--black);
+    }
+    .search-input:focus { outline: none; border-color: var(--red); }
+
+    /* Table */
+    .table-wrap { background: var(--white); border-radius: 8px; border: 1px solid var(--gray-border); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--black); }
+    thead th { color: var(--white); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 12px 16px; text-align: left; }
+    tbody tr { border-bottom: 1px solid var(--gray-border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #FAFAFA; }
+    td { padding: 13px 16px; font-size: 14px; color: var(--black); vertical-align: middle; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-verified { background: #E8F5E9; color: var(--green); }
+    .badge-pending  { background: #FFF8E1; color: #795500; }
+    .badge-rejected { background: var(--red-light); color: var(--red); }
+    .doc-count { font-size: 12px; color: var(--text-muted); }
+    .actions { display: flex; gap: 6px; }
+    .empty-row td { text-align: center; color: var(--text-muted); padding: 40px; font-size: 14px; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; padding: 20px;
+    }
+    .modal {
+      background: var(--white); border-radius: 10px;
+      width: 100%; max-width: 680px; max-height: 90vh;
+      overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+      background: var(--black); color: var(--white);
+      padding: 18px 24px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .modal-header h3 { font-size: 16px; font-weight: 700; }
+    .modal-close { background: none; border: none; color: var(--white); font-size: 22px; cursor: pointer; line-height: 1; }
+    .modal-body  { padding: 24px; }
+    .owner-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; margin-bottom: 24px; }
+    .info-field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 2px; }
+    .info-field span  { font-size: 14px; font-weight: 600; color: var(--black); }
+    .docs-section h4 { font-size: 14px; font-weight: 700; color: var(--black); margin-bottom: 12px; border-bottom: 1px solid var(--gray-border); padding-bottom: 8px; }
+    .doc-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--gray-border); border-radius: 6px; margin-bottom: 8px; }
+    .doc-row-left  { font-size: 13px; }
+    .doc-row-name  { font-weight: 600; color: var(--black); }
+    .doc-row-file  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .doc-row-right { display: flex; gap: 6px; align-items: center; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-border); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .notes-input { flex: 1; min-width: 200px; padding: 9px 12px; border: 1.5px solid var(--gray-border); border-radius: 6px; font-size: 13px; color: var(--black); }
+    .notes-input:focus { outline: none; border-color: var(--red); }
+
+    @media (max-width: 700px) {
+      .owner-info-grid { grid-template-columns: 1fr; }
+      .stats-row { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Login Screen ── -->
+<div id="loginScreen">
+  <header>
+    <div class="logo-icon">🏠</div>
+    <div>
+      <div class="logo-name">Raghav Realty <span style="font-size:11px;opacity:0.75;font-weight:400;">Admin</span></div>
+      <div class="logo-sub">Staff Access Only</div>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <div class="card-title">Admin Login</div>
+      <div class="card-sub">This area is restricted to Raghav Realty staff.</div>
+      <div class="error-box" id="loginError"></div>
+      <form id="adminLoginForm">
+        <div class="form-group">
+          <label for="adminPass">Admin Password</label>
+          <input type="password" id="adminPass" placeholder="Enter admin password" required>
+        </div>
+        <button type="submit" class="btn btn-full" id="loginBtn">Login</button>
+      </form>
+    </div>
+  </main>
+  <footer>© 2025 Raghav Realty — Restricted Area</footer>
+</div>
+
+<!-- ── Dashboard ── -->
+<div id="dashboard">
+  <header>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="logo-icon" style="background:rgba(255,255,255,0.1);">🏠</div>
+      <div>
+        <div class="logo-name">Raghav Realty <span class="admin-tag">ADMIN</span></div>
+        <div class="logo-sub" style="color:rgba(255,255,255,0.6);">CRM — Owner Verification</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="btn btn-sm btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.3);" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff;" onclick="adminLogout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card"><div class="stat-num" id="statTotal">—</div><div class="stat-label">Total Owners</div></div>
+      <div class="stat-card green"><div class="stat-num" id="statVerified">—</div><div class="stat-label">Verified</div></div>
+      <div class="stat-card red"><div class="stat-num" id="statPending">—</div><div class="stat-label">Pending Review</div></div>
+    </div>
+
+    <div class="toolbar">
+      <h2>Owner Registry</h2>
+      <input type="text" class="search-input" placeholder="Search by name or House ID…" id="searchInput" oninput="filterTable()">
+      <button class="btn btn-sm" onclick="loadOwners()">↻ Refresh</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="ownersTable">
+        <thead>
+          <tr>
+            <th>House ID</th>
+            <th>Owner Name</th>
+            <th>Phone</th>
+            <th>Documents</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="ownersBody">
+          <tr class="empty-row"><td colspan="6">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Owner Modal ── -->
+<div class="modal-overlay" id="ownerModal" style="display:none;" onclick="closeModal(event)">
+  <div class="modal" id="modalContent">
+    <div class="modal-header">
+      <h3 id="modalTitle">Owner Details</h3>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="owner-info-grid" id="ownerInfoGrid"></div>
+      <div class="docs-section">
+        <h4>Uploaded Documents</h4>
+        <div id="docsList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <input type="text" class="notes-input" id="verifyNotes" placeholder="Notes (optional, shown to owner on rejection)">
+      <button class="btn btn-sm btn-green" id="btnApprove" onclick="verifyOwner('approve')">✓ Approve</button>
+      <button class="btn btn-sm" style="background:#E74C3C;" id="btnReject" onclick="verifyOwner('reject')">✗ Reject</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Auth ─────────────────────────────────────────────────────
+  const ADMIN_TOKEN_KEY = 'rr_admin_token';
+  let adminToken  = localStorage.getItem(ADMIN_TOKEN_KEY);
+  let allOwners   = [];
+  let activeOwner = null;
+
+  if (adminToken) showDashboard();
+
+  document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const err = document.getElementById('loginError');
+    err.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Logging in…';
+
+    try {
+      const res  = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: document.getElementById('adminPass').value })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Wrong password.');
+      localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+      localStorage.setItem('rr_admin_name', data.name || 'Admin');
+      adminToken = data.token;
+      showDashboard();
+    } catch (e) {
+      err.textContent = e.message;
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Login';
+    }
+  });
+
+  function showDashboard() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display   = 'block';
+    // Show admin name in header
+    const adminName = localStorage.getItem('rr_admin_name') || 'Admin';
+    document.title = `${adminName} — Admin Panel`;
+    const subEl = document.querySelector('#dashboard header .logo-sub');
+    if (subEl) subEl.textContent = `Logged in as ${adminName}`;
+    loadOwners();
+  }
+
+  function adminLogout() {
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    localStorage.removeItem('rr_admin_name');
+    location.reload();
+  }
+
+  // ── Load owners ──────────────────────────────────────────────
+  async function loadOwners() {
+    document.getElementById('ownersBody').innerHTML = '<tr class="empty-row"><td colspan="6">Loading…</td></tr>';
+    try {
+      const res  = await fetch('/api/owners', { headers: { Authorization: `Bearer ${adminToken}` } });
+      if (res.status === 401) { adminLogout(); return; }
+      const data = await res.json();
+      allOwners  = data.owners || [];
+      renderStats();
+      renderTable(allOwners);
+    } catch {
+      document.getElementById('ownersBody').innerHTML = '<tr class="empty-row"><td colspan="6">Failed to load. Refresh to retry.</td></tr>';
+    }
+  }
+
+  function renderStats() {
+    const total    = allOwners.length;
+    const verified = allOwners.filter(o => o.verified === true).length;
+    const pending  = allOwners.filter(o => o.verified !== true).length;
+    document.getElementById('statTotal').textContent    = total;
+    document.getElementById('statVerified').textContent = verified;
+    document.getElementById('statPending').textContent  = pending;
+  }
+
+  const DOC_LABELS = { govt_id: 'Govt ID', ownership_doc: 'Ownership Doc', tax_bill: 'Tax Bill', utility_bill: 'Utility Bill' };
+
+  function renderTable(owners) {
+    const tbody = document.getElementById('ownersBody');
+    if (!owners.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No owners found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = owners.map(o => {
+      const docCount  = (o.documents || []).length;
+      const badgeCls  = o.verified === true ? 'badge-verified' : 'badge-pending';
+      const badgeTxt  = o.verified === true ? '✓ Verified' : '⏳ Pending';
+      return `
+        <tr>
+          <td><strong>${o.house_id}</strong></td>
+          <td>${o.name}</td>
+          <td>${o.phone || '—'}</td>
+          <td><span class="doc-count">${docCount} / 4 uploaded</span></td>
+          <td><span class="badge ${badgeCls}">${badgeTxt}</span></td>
+          <td><div class="actions">
+            <button class="btn btn-sm btn-outline" onclick="openOwner('${o.id}')">View</button>
+          </div></td>
+        </tr>`;
+    }).join('');
+  }
+
+  function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    if (!q) { renderTable(allOwners); return; }
+    renderTable(allOwners.filter(o =>
+      o.name.toLowerCase().includes(q) || o.house_id.toLowerCase().includes(q)
+    ));
+  }
+
+  // ── Owner modal ──────────────────────────────────────────────
+  function openOwner(id) {
+    activeOwner = allOwners.find(o => o.id === id);
+    if (!activeOwner) return;
+
+    document.getElementById('modalTitle').textContent = `${activeOwner.name} — ${activeOwner.house_id}`;
+    document.getElementById('verifyNotes').value = '';
+
+    const grid = document.getElementById('ownerInfoGrid');
+    grid.innerHTML = [
+      ['House ID',  activeOwner.house_id],
+      ['Name',      activeOwner.name],
+      ['Phone',     activeOwner.phone || '—'],
+      ['Status',    activeOwner.verified ? '✓ Verified' : 'Pending Review'],
+      ['Joined',    new Date(activeOwner.created_at).toLocaleDateString('en-IN')],
+      ['Verified On', activeOwner.verified_at ? new Date(activeOwner.verified_at).toLocaleDateString('en-IN') : '—']
+    ].map(([l, v]) => `<div class="info-field"><label>${l}</label><span>${v}</span></div>`).join('');
+
+    const docs = activeOwner.documents || [];
+    const docsList = document.getElementById('docsList');
+    if (!docs.length) {
+      docsList.innerHTML = '<p style="color:#999;font-size:13px;">No documents uploaded yet.</p>';
+    } else {
+      docsList.innerHTML = docs.map(d => `
+        <div class="doc-row">
+          <div class="doc-row-left">
+            <div class="doc-row-name">${DOC_LABELS[d.doc_type] || d.doc_type}</div>
+            <div class="doc-row-file">📎 ${d.file_name}</div>
+          </div>
+          <div class="doc-row-right">
+            <span class="badge ${d.status === 'approved' ? 'badge-verified' : d.status === 'rejected' ? 'badge-rejected' : 'badge-pending'}">
+              ${d.status}
+            </span>
+            ${d.file_url ? `<a href="${d.file_url}" target="_blank" class="btn btn-sm btn-outline" style="text-decoration:none;">View</a>` : ''}
+          </div>
+        </div>`).join('');
+    }
+
+    document.getElementById('ownerModal').style.display = 'flex';
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('ownerModal')) closeModalDirect();
+  }
+  function closeModalDirect() {
+    document.getElementById('ownerModal').style.display = 'none';
+    activeOwner = null;
+  }
+
+  // ── Verify / Reject ──────────────────────────────────────────
+  async function verifyOwner(action) {
+    if (!activeOwner) return;
+    const notes  = document.getElementById('verifyNotes').value.trim();
+    const btnA   = document.getElementById('btnApprove');
+    const btnR   = document.getElementById('btnReject');
+    btnA.disabled = btnR.disabled = true;
+
+    try {
+      const res = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ owner_id: activeOwner.id, action, notes })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Action failed.');
+      closeModalDirect();
+      await loadOwners();
+    } catch (e) {
+      alert(e.message);
+      btnA.disabled = btnR.disabled = false;
+    }
+  }
+
+  // ── Export CSV ───────────────────────────────────────────────
+  function exportCSV() {
+    if (!allOwners.length) return;
+    const rows = [['House ID', 'Name', 'Phone', 'Documents Uploaded', 'Verified', 'Verified On']];
+    allOwners.forEach(o => rows.push([
+      o.house_id, o.name, o.phone || '',
+      (o.documents || []).length,
+      o.verified ? 'Yes' : 'No',
+      o.verified_at ? new Date(o.verified_at).toLocaleDateString('en-IN') : ''
+    ]));
+    const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'raghav-realty-owners.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+</script>
+</body>
+</html>
