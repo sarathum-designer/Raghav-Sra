@@ -22,7 +22,8 @@
       display: flex; align-items: center; gap: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
-    .logo-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .logo-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-icon img { width: 42px; height: 42px; object-fit: contain; display: block; }
     .logo-name { color: var(--white); font-size: 18px; font-weight: 700; }
     .logo-sub  { color: rgba(255,255,255,0.75); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
     #loginScreen main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
@@ -45,6 +46,8 @@
     .btn-outline:hover { background: var(--red-light); }
     .btn-green { background: var(--green); }
     .btn-green:hover { background: #1E8449; }
+    .btn-blue  { background: var(--blue); color: var(--white); }
+    .btn-blue:hover:not(:disabled) { background: #2471A3; }
     .error-box { background: var(--red-light); color: var(--red); border: 1px solid #F5C6C2; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
     footer { text-align: center; padding: 16px; font-size: 12px; color: #AAA; border-top: 1px solid var(--gray-border); background: var(--white); }
 
@@ -135,7 +138,7 @@
 <!-- ── Login Screen ── -->
 <div id="loginScreen">
   <header>
-    <div class="logo-icon">🏠</div>
+    <div class="logo-icon"><img src="logo.png" alt="Raghav Realty"></div>
     <div>
       <div class="logo-name">Raghav Realty <span style="font-size:11px;opacity:0.75;font-weight:400;">Admin</span></div>
       <div class="logo-sub">Staff Access Only</div>
@@ -148,8 +151,12 @@
       <div class="error-box" id="loginError"></div>
       <form id="adminLoginForm">
         <div class="form-group">
-          <label for="adminPass">Admin Password</label>
-          <input type="password" id="adminPass" placeholder="Enter admin password" required>
+          <label for="adminUser">Username</label>
+          <input type="text" id="adminUser" placeholder="Enter your username" autocomplete="off" required>
+        </div>
+        <div class="form-group">
+          <label for="adminPass">Password</label>
+          <input type="password" id="adminPass" placeholder="Enter your password" required>
         </div>
         <button type="submit" class="btn btn-full" id="loginBtn">Login</button>
       </form>
@@ -162,7 +169,7 @@
 <div id="dashboard">
   <header>
     <div style="display:flex;align-items:center;gap:12px;">
-      <div class="logo-icon" style="background:rgba(255,255,255,0.1);">🏠</div>
+      <div class="logo-icon"><img src="logo.png" alt="Raghav Realty"></div>
       <div>
         <div class="logo-name">Raghav Realty <span class="admin-tag">ADMIN</span></div>
         <div class="logo-sub" style="color:rgba(255,255,255,0.6);">CRM — Owner Verification</div>
@@ -249,7 +256,10 @@
       const res  = await fetch('/api/admin-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: document.getElementById('adminPass').value })
+        body: JSON.stringify({
+            username: document.getElementById('adminUser').value.trim().toLowerCase(),
+            password: document.getElementById('adminPass').value
+          })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Wrong password.');
@@ -373,6 +383,7 @@
               ${d.status}
             </span>
             ${d.file_url ? `<a href="${d.file_url}" target="_blank" class="btn btn-sm btn-outline" style="text-decoration:none;">View</a>` : ''}
+            ${d.file_url ? `<button class="btn btn-sm btn-blue" onclick="downloadDoc('${d.id}', this)">⬇ Download</button>` : ''}
           </div>
         </div>`).join('');
     }
@@ -409,6 +420,37 @@
     } catch (e) {
       alert(e.message);
       btnA.disabled = btnR.disabled = false;
+    }
+  }
+
+  // ── Download individual document ────────────────────────────
+  async function downloadDoc(docId, btn) {
+    if (!activeOwner) return;
+    const doc = (activeOwner.documents || []).find(d => d.id === docId);
+    if (!doc || !doc.file_url) return;
+
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    try {
+      const res = await fetch(doc.file_url);
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const blob = await res.blob();
+      const ext      = (doc.file_name.split('.').pop() || 'pdf').toLowerCase();
+      const safeName = `${activeOwner.house_id}_${activeOwner.name.replace(/\s+/g, '_')}.${ext}`;
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = safeName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      alert('Download failed: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
     }
   }
 
