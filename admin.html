@@ -437,9 +437,11 @@
       const res = await fetch(doc.file_url);
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const blob = await res.blob();
+      const ext      = (doc.file_name.split('.').pop() || 'pdf').toLowerCase();
+      const safeName = `${activeOwner.house_id}_${activeOwner.name.replace(/\s+/g, '_')}.${ext}`;
       const a    = document.createElement('a');
       a.href     = URL.createObjectURL(blob);
-      a.download = doc.file_name;
+      a.download = safeName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
