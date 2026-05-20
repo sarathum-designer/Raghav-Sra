@@ -122,31 +122,32 @@
     <div class="logo-icon"><img src="logo.png" alt="Raghav Realty"></div>
     <div>
       <div class="logo-name">Raghav Realty</div>
-      <div class="logo-sub">Owner Verification Portal · Nalanda</div>
+      <div class="logo-sub" id="loginLogoSub">Owner Verification Portal · Nalanda</div>
     </div>
+    <button id="loginLangBtn" onclick="toggleLoginLang()" style="margin-left:auto;background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.35);padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">मराठी</button>
   </header>
 
   <main>
     <div class="card">
-      <div class="card-title">Owner Login</div>
-      <div class="card-sub">Enter your House ID and password to access your verification portal.</div>
+      <div class="card-title" id="loginTitle">Owner Login</div>
+      <div class="card-sub" id="loginSub">Enter your House ID and password to access your verification portal.</div>
 
       <div class="error-box" id="errorBox"></div>
 
       <form id="loginForm" novalidate>
         <div class="form-group">
-          <label for="houseId">House ID</label>
+          <label for="houseId" id="labelHouseId">House ID</label>
           <input type="text" id="houseId" placeholder="e.g. NAL-001" autocomplete="off" required>
         </div>
         <div class="form-group">
-          <label for="password">Password</label>
+          <label for="password" id="labelPassword">Password</label>
           <input type="password" id="password" placeholder="Enter your password" required>
         </div>
         <button type="submit" class="btn" id="loginBtn">Login to Portal</button>
       </form>
 
       <hr class="divider">
-      <div class="admin-link">
+      <div class="admin-link" id="adminLinkDiv">
         Raghav Realty staff? <a href="admin.html">Admin Panel →</a>
       </div>
     </div>
@@ -155,6 +156,62 @@
   <footer>© 2025 Raghav Realty. Nalanda Land Registry Portal. All rights reserved.</footer>
 
   <script>
+    // ── Language ──────────────────────────────────────────────────
+    let loginLang = localStorage.getItem('rr_lang') || 'en';
+    const LOGIN_STRINGS = {
+      en: {
+        logoSub:   'Owner Verification Portal · Nalanda',
+        cardTitle: 'Owner Login',
+        cardSub:   'Enter your House ID and password to access your verification portal.',
+        labelHouseId:  'House ID',
+        phHouseId:     'e.g. NAL-001',
+        labelPassword: 'Password',
+        phPassword:    'Enter your password',
+        loginBtn:      'Login to Portal',
+        loggingIn:     'Logging in…',
+        adminLink:     'Raghav Realty staff?',
+        adminLinkBtn:  'Admin Panel →',
+        errFill:   'Please fill in all fields.',
+        errLogin:  'Login failed. Check your credentials.',
+      },
+      mr: {
+        logoSub:   'मालक पडताळणी पोर्टल · नालंदा',
+        cardTitle: 'मालक लॉगिन',
+        cardSub:   'तुमच्या पडताळणी पोर्टलमध्ये प्रवेश करण्यासाठी हाऊस आयडी आणि पासवर्ड प्रविष्ट करा.',
+        labelHouseId:  'हाऊस आयडी',
+        phHouseId:     'उदा. NAL-001',
+        labelPassword: 'पासवर्ड',
+        phPassword:    'तुमचा पासवर्ड प्रविष्ट करा',
+        loginBtn:      'पोर्टलमध्ये प्रवेश करा',
+        loggingIn:     'लॉगिन होत आहे…',
+        adminLink:     'राघव रियल्टी कर्मचारी?',
+        adminLinkBtn:  'प्रशासक पॅनेल →',
+        errFill:  'कृपया सर्व फील्ड भरा.',
+        errLogin: 'लॉगिन अयशस्वी. तुमचे क्रेडेंशियल तपासा.',
+      }
+    };
+    function tl(key) { return (LOGIN_STRINGS[loginLang] || LOGIN_STRINGS.en)[key] ?? LOGIN_STRINGS.en[key] ?? key; }
+    function toggleLoginLang() {
+      loginLang = loginLang === 'en' ? 'mr' : 'en';
+      localStorage.setItem('rr_lang', loginLang);
+      applyLoginLang();
+    }
+    function applyLoginLang() {
+      document.getElementById('loginLangBtn').textContent  = loginLang === 'en' ? 'मराठी' : 'English';
+      document.getElementById('loginLogoSub').textContent  = tl('logoSub');
+      document.getElementById('loginTitle').textContent    = tl('cardTitle');
+      document.getElementById('loginSub').textContent      = tl('cardSub');
+      document.getElementById('labelHouseId').textContent  = tl('labelHouseId');
+      document.getElementById('houseId').placeholder       = tl('phHouseId');
+      document.getElementById('labelPassword').textContent = tl('labelPassword');
+      document.getElementById('password').placeholder      = tl('phPassword');
+      const btn = document.getElementById('loginBtn');
+      if (btn && !btn.disabled) btn.textContent = tl('loginBtn');
+      document.getElementById('adminLinkDiv').innerHTML =
+        `${tl('adminLink')} <a href="admin.html">${tl('adminLinkBtn')}</a>`;
+    }
+    applyLoginLang();
+
     if (localStorage.getItem('rr_token')) window.location.href = 'customer.html';
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -163,16 +220,16 @@
       const errBox = document.getElementById('errorBox');
       errBox.style.display = 'none';
       btn.disabled = true;
-      btn.textContent = 'Logging in…';
+      btn.textContent = tl('loggingIn');
 
       const houseId  = document.getElementById('houseId').value.trim().toUpperCase();
       const password = document.getElementById('password').value;
 
       if (!houseId || !password) {
-        errBox.textContent = 'Please fill in all fields.';
+        errBox.textContent = tl('errFill');
         errBox.style.display = 'block';
         btn.disabled = false;
-        btn.textContent = 'Login to Portal';
+        btn.textContent = tl('loginBtn');
         return;
       }
 
@@ -183,7 +240,7 @@
           body: JSON.stringify({ house_id: houseId, password })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Login failed. Check your credentials.');
+        if (!res.ok) throw new Error(data.error || tl('errLogin'));
         localStorage.setItem('rr_token', data.token);
         localStorage.setItem('rr_owner', JSON.stringify(data.owner));
         window.location.href = 'customer.html';
@@ -191,7 +248,7 @@
         errBox.textContent = err.message;
         errBox.style.display = 'block';
         btn.disabled = false;
-        btn.textContent = 'Login to Portal';
+        btn.textContent = tl('loginBtn');
       }
     });
   </script>

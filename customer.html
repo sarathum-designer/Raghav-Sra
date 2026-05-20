@@ -208,7 +208,8 @@
         <strong id="ownerNameHeader">—</strong>
         <span id="ownerHouseHeader">—</span>
       </div>
-      <button class="btn-logout" onclick="logout()">Logout</button>
+      <button class="btn-logout" id="langBtn" onclick="toggleLang()" title="भाषा बदला / Change language">मराठी</button>
+      <button class="btn-logout" id="logoutBtn" onclick="logout()">Logout</button>
     </div>
   </header>
 
@@ -242,21 +243,21 @@
     <div style="margin-top:36px;">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
         <div style="flex:1;height:1px;background:var(--gray-border);"></div>
-        <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;">Monthly Bills &amp; Claims</span>
+        <span id="billsSecTitle" style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;">Monthly Bills &amp; Claims</span>
         <div style="flex:1;height:1px;background:var(--gray-border);"></div>
       </div>
-      <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;">Upload your monthly utility bills to submit a reimbursement claim. Once verified and approved, a cheque will be sent to you via money order.</p>
+      <p id="billsSecDesc" style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;">Upload your monthly utility bills to submit a reimbursement claim. Once verified and approved, a cheque will be sent to you via money order.</p>
 
       <!-- Submitted bills list -->
       <div id="billsList" style="margin-bottom:16px;"></div>
 
       <!-- Submit new bill form -->
       <div class="doc-card" style="border-style:dashed;">
-        <div style="font-size:14px;font-weight:700;color:var(--black);margin-bottom:16px;">🧾 Submit a New Bill Claim</div>
+        <div id="billFormTitle" style="font-size:14px;font-weight:700;color:var(--black);margin-bottom:16px;">🧾 Submit a New Bill Claim</div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
           <div>
-            <label style="display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:5px;">Bill Type *</label>
+            <label id="labelBillType" style="display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:5px;">Bill Type *</label>
             <select id="billType" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-border);border-radius:6px;font-size:13px;color:var(--black);background:var(--white);cursor:pointer;">
               <option value="">Select type…</option>
               <option value="electricity">⚡ Electricity</option>
@@ -266,20 +267,20 @@
             </select>
           </div>
           <div>
-            <label style="display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:5px;">Bill Month *</label>
+            <label id="labelBillMonth" style="display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:5px;">Bill Month *</label>
             <input type="month" id="billMonth" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-border);border-radius:6px;font-size:13px;color:var(--black);">
           </div>
         </div>
 
         <div style="margin-bottom:12px;">
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:5px;">Claim Amount (₹) <span style="font-weight:400;color:var(--text-muted);">optional</span></label>
+          <label id="labelClaimAmt" style="display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:5px;">Claim Amount (₹) <span style="font-weight:400;color:var(--text-muted);">optional</span></label>
           <input type="number" id="claimAmount" min="0" step="0.01" placeholder="e.g. 850.00" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-border);border-radius:6px;font-size:13px;color:var(--black);">
         </div>
 
         <div class="upload-area" id="area-bill">
           <input type="file" id="file-bill" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect('bill', this)">
           <div class="upload-icon">📁</div>
-          <div class="upload-text"><span>Choose bill file</span> or drag here<br>PDF, JPG, PNG — max 8 MB</div>
+          <div class="upload-text" id="billUploadText"><span>Choose bill file</span> or drag here<br>PDF, JPG, PNG — max 8 MB</div>
         </div>
         <div id="preview-bill" style="display:none;"></div>
         <button class="btn-upload" id="btn-bill" onclick="submitBill()" disabled>Submit Bill Claim</button>
@@ -299,6 +300,170 @@
     document.getElementById('ownerHouseHeader').textContent = owner.house_id || '—';
     document.getElementById('pageTitle').textContent = `My Documents — ${owner.house_id || ''}`;
 
+    // ── Language ─────────────────────────────────────────────────
+    let lang       = localStorage.getItem('rr_lang') || 'en';
+    let cachedBills = [];
+
+    const STRINGS = {
+      en: {
+        logoSub: 'Owner Portal', logout: 'Logout',
+        pageTitle: 'My Documents',
+        pageSub: 'Upload the required documents below for identity and property verification.',
+        pendingTitle: 'Verification Pending',
+        pendingBody: 'Upload all required documents. Our team will review and verify your account.',
+        verifiedTitle: 'Account Verified',
+        verifiedBody: 'Your identity and documents have been verified by Raghav Realty.',
+        rejectedTitle: 'Verification Rejected',
+        rejectedDefault: 'Please re-upload corrected documents or contact us.',
+        docGovtId: 'Government Photo ID',
+        docGovtIdHint: 'Aadhaar Card, PAN Card, Voter ID, or Passport',
+        docOwnershipDoc: 'Ownership Document',
+        docOwnershipDocHint: 'Registered sale deed, patta, or land record (ROR)',
+        docTaxBill: 'Property Tax Bill',
+        docTaxBillHint: 'Latest municipal property tax receipt',
+        docUtilityBill: 'Utility Bill',
+        docUtilityBillHint: 'Electricity or water bill (last 3 months)',
+        badgeRequired: 'Required',
+        badgeUploaded: '⏳ Uploaded — Under Review',
+        badgeApproved: '✓ Approved',
+        badgeRejected: '✗ Needs re-upload',
+        chooseFile: 'Choose file', dragHere: 'or drag here', fileLimit: 'PDF, JPG, PNG — max 8 MB',
+        uploadBtn: 'Upload Document', chooseBillFile: 'Choose bill file',
+        compressing: 'Compressing…', validating: 'Validating…',
+        uploading: 'Uploading…', saving: 'Saving…',
+        fileTooLarge: 'File is too large (max 8 MB).',
+        uploadSuccess: '✓ Uploaded successfully!',
+        helpTitle: 'What documents do I need?',
+        helpGovtId: 'Government Photo ID', helpGovtIdDetail: 'Aadhaar Card, PAN Card, Voter ID, or Passport',
+        helpOwnership: 'Ownership Document', helpOwnershipDetail: 'Registered sale deed, patta, or land record (ROR)',
+        helpTax: 'Property Tax Bill', helpTaxDetail: 'Latest municipal property tax receipt',
+        helpUtility: 'Utility Bill', helpUtilityDetail: 'Electricity or water bill from the last 3 months',
+        billsTitle: 'Monthly Bills & Claims',
+        billsDesc: 'Upload your monthly utility bills to submit a reimbursement claim. Once verified and approved, a cheque will be sent to you via money order.',
+        noBills: 'No bill claims submitted yet.',
+        billFormTitle: '🧾 Submit a New Bill Claim',
+        labelBillType: 'Bill Type *', billTypePlaceholder: 'Select type…',
+        billElectricity: '⚡ Electricity', billGas: '🔥 Gas', billWater: '💧 Water', billOther: '📋 Other',
+        labelBillMonth: 'Bill Month *', labelClaimAmt: 'Claim Amount (₹)', optional: 'optional',
+        submitBillBtn: 'Submit Bill Claim',
+        billApproved: '✓ Approved — Cheque will be sent via money order',
+        billRejected: '✗ Rejected', billPending: '⏳ Under Review',
+        billSubmitOk: '✓ Bill claim submitted! We will review and send a cheque once approved.',
+        billLabelElectricity: 'Electricity', billLabelGas: 'Gas', billLabelWater: 'Water', billLabelOther: 'Other',
+        errBillType: 'Please select a bill type.',
+        errBillMonth: 'Please select the bill month.',
+        errChooseFile: 'Please choose a file to upload.',
+        sessionWarn: 'Your session will expire in 10 minutes. Click OK to stay logged in.',
+      },
+      mr: {
+        logoSub: 'मालक पोर्टल', logout: 'बाहेर पडा',
+        pageTitle: 'माझे दस्तऐवज',
+        pageSub: 'ओळख आणि मालमत्ता पडताळणीसाठी खालील आवश्यक कागदपत्रे अपलोड करा.',
+        pendingTitle: 'पडताळणी प्रलंबित',
+        pendingBody: 'सर्व आवश्यक कागदपत्रे अपलोड करा. आमची टीम तुमच्या खात्याचे पुनरावलोकन आणि पडताळणी करेल.',
+        verifiedTitle: 'खाते पडताळले',
+        verifiedBody: 'राघव रियल्टीने तुमची ओळख आणि कागदपत्रे पडताळली आहेत.',
+        rejectedTitle: 'पडताळणी नाकारली',
+        rejectedDefault: 'कृपया दुरुस्त कागदपत्रे पुन्हा अपलोड करा किंवा आमच्याशी संपर्क साधा.',
+        docGovtId: 'सरकारी फोटो ओळखपत्र',
+        docGovtIdHint: 'आधार कार्ड, पॅन कार्ड, मतदार ओळखपत्र किंवा पासपोर्ट',
+        docOwnershipDoc: 'मालकी दस्तऐवज',
+        docOwnershipDocHint: 'नोंदणीकृत विक्री करार, पट्टा किंवा जमीन नोंद (ROR)',
+        docTaxBill: 'मालमत्ता कर बिल',
+        docTaxBillHint: 'नवीनतम महानगरपालिका मालमत्ता कर पावती',
+        docUtilityBill: 'उपयोगिता बिल',
+        docUtilityBillHint: 'गेल्या ३ महिन्यांतील वीज किंवा पाण्याचे बिल',
+        badgeRequired: 'आवश्यक',
+        badgeUploaded: '⏳ अपलोड केले — पुनरावलोकनाधीन',
+        badgeApproved: '✓ मंजूर',
+        badgeRejected: '✗ पुन्हा अपलोड करा',
+        chooseFile: 'फाईल निवडा', dragHere: 'किंवा येथे ड्रॅग करा', fileLimit: 'PDF, JPG, PNG — कमाल ८ MB',
+        uploadBtn: 'कागदपत्र अपलोड करा', chooseBillFile: 'बिल फाईल निवडा',
+        compressing: 'संकुचित करत आहे…', validating: 'पडताळत आहे…',
+        uploading: 'अपलोड होत आहे…', saving: 'जतन करत आहे…',
+        fileTooLarge: 'फाईल खूप मोठी आहे (कमाल ८ MB).',
+        uploadSuccess: '✓ यशस्वीरित्या अपलोड केले!',
+        helpTitle: 'मला कोणते कागदपत्रे आवश्यक आहेत?',
+        helpGovtId: 'सरकारी फोटो ओळखपत्र', helpGovtIdDetail: 'आधार कार्ड, पॅन कार्ड, मतदार ओळखपत्र किंवा पासपोर्ट',
+        helpOwnership: 'मालकी दस्तऐवज', helpOwnershipDetail: 'नोंदणीकृत विक्री करार, पट्टा किंवा जमीन नोंद (ROR)',
+        helpTax: 'मालमत्ता कर बिल', helpTaxDetail: 'नवीनतम महानगरपालिका मालमत्ता कर पावती',
+        helpUtility: 'उपयोगिता बिल', helpUtilityDetail: 'गेल्या ३ महिन्यांतील वीज किंवा पाण्याचे बिल',
+        billsTitle: 'मासिक बिले आणि दावे',
+        billsDesc: 'परतावा दावा दाखल करण्यासाठी तुमची मासिक उपयोगिता बिले अपलोड करा. पडताळणी आणि मंजुरीनंतर, मनी ऑर्डरद्वारे चेक पाठवला जाईल.',
+        noBills: 'अजून कोणताही बिल दावा सादर केला नाही.',
+        billFormTitle: '🧾 नवीन बिल दावा सादर करा',
+        labelBillType: 'बिलाचा प्रकार *', billTypePlaceholder: 'प्रकार निवडा…',
+        billElectricity: '⚡ वीज', billGas: '🔥 गॅस', billWater: '💧 पाणी', billOther: '📋 इतर',
+        labelBillMonth: 'बिलाचा महिना *', labelClaimAmt: 'दावा रक्कम (₹)', optional: 'ऐच्छिक',
+        submitBillBtn: 'बिल दावा सादर करा',
+        billApproved: '✓ मंजूर — मनी ऑर्डरद्वारे चेक पाठवला जाईल',
+        billRejected: '✗ नाकारला', billPending: '⏳ पुनरावलोकनाधीन',
+        billSubmitOk: '✓ बिल दावा सादर केला! पडताळणीनंतर आम्ही चेक पाठवू.',
+        billLabelElectricity: 'वीज', billLabelGas: 'गॅस', billLabelWater: 'पाणी', billLabelOther: 'इतर',
+        errBillType: 'कृपया बिलाचा प्रकार निवडा.',
+        errBillMonth: 'कृपया बिलाचा महिना निवडा.',
+        errChooseFile: 'कृपया अपलोड करण्यासाठी फाईल निवडा.',
+        sessionWarn: 'तुमचे सत्र १० मिनिटांत समाप्त होईल. लॉग इन राहण्यासाठी ओके क्लिक करा.',
+      }
+    };
+
+    function t(key) { return (STRINGS[lang] || STRINGS.en)[key] ?? STRINGS.en[key] ?? key; }
+
+    function toggleLang() { setLang(lang === 'en' ? 'mr' : 'en'); }
+
+    function setLang(l) {
+      lang = l;
+      localStorage.setItem('rr_lang', lang);
+      const lb = document.getElementById('langBtn');
+      if (lb) lb.textContent = lang === 'en' ? 'मराठी' : 'English';
+      applyStaticLang();
+      const ownerData = JSON.parse(localStorage.getItem('rr_owner') || '{}');
+      updateStatusBanner(ownerData.verified, ownerData.rejection_notes);
+      renderGrid();
+      renderBillsList(cachedBills);
+    }
+
+    function applyStaticLang() {
+      const lb = document.getElementById('langBtn');
+      if (lb) lb.textContent = lang === 'en' ? 'मराठी' : 'English';
+      const logEl = document.getElementById('logoutBtn');
+      if (logEl) logEl.textContent = t('logout');
+      const lsub = document.querySelector('.logo-sub');
+      if (lsub) lsub.textContent = t('logoSub');
+      document.getElementById('pageTitle').textContent = `${t('pageTitle')} — ${owner.house_id || ''}`;
+      const ps = document.querySelector('.page-sub');
+      if (ps) ps.textContent = t('pageSub');
+      // Help box
+      const hb = document.querySelector('.help-box');
+      if (hb) hb.innerHTML = `<h3>${t('helpTitle')}</h3><ul>
+        <li><strong>${t('helpGovtId')}:</strong> ${t('helpGovtIdDetail')}</li>
+        <li><strong>${t('helpOwnership')}:</strong> ${t('helpOwnershipDetail')}</li>
+        <li><strong>${t('helpTax')}:</strong> ${t('helpTaxDetail')}</li>
+        <li><strong>${t('helpUtility')}:</strong> ${t('helpUtilityDetail')}</li></ul>`;
+      // Bills section static labels
+      const bst = document.getElementById('billsSecTitle');  if (bst) bst.textContent = t('billsTitle');
+      const bsd = document.getElementById('billsSecDesc');   if (bsd) bsd.textContent = t('billsDesc');
+      const bft = document.getElementById('billFormTitle');  if (bft) bft.textContent = t('billFormTitle');
+      const lbt = document.getElementById('labelBillType');  if (lbt) lbt.textContent = t('labelBillType');
+      const lbm = document.getElementById('labelBillMonth'); if (lbm) lbm.textContent = t('labelBillMonth');
+      const lca = document.getElementById('labelClaimAmt');
+      if (lca) lca.innerHTML = `${t('labelClaimAmt')} <span style="font-weight:400;color:var(--text-muted);">${t('optional')}</span>`;
+      const but = document.getElementById('billUploadText');
+      if (but) but.innerHTML = `<span>${t('chooseBillFile')}</span> ${t('dragHere')}<br>${t('fileLimit')}`;
+      // Bill select options
+      const sel = document.getElementById('billType');
+      if (sel && sel.options.length >= 5) {
+        sel.options[0].text = t('billTypePlaceholder');
+        sel.options[1].text = t('billElectricity');
+        sel.options[2].text = t('billGas');
+        sel.options[3].text = t('billWater');
+        sel.options[4].text = t('billOther');
+      }
+      // Bill submit button (only when idle)
+      const bb = document.getElementById('btn-bill');
+      if (bb && bb.disabled === false) bb.textContent = t('submitBillBtn');
+    }
+
     function logout() {
       localStorage.removeItem('rr_token');
       localStorage.removeItem('rr_owner');
@@ -307,34 +472,10 @@
 
     // ── Document types ───────────────────────────────────────────
     const DOC_TYPES = [
-      {
-        key: 'govt_id',
-        label: 'Government Photo ID',
-        hint: 'Aadhaar Card, PAN Card, Voter ID, or Passport',
-        icon: '🪪',
-        iconClass: 'id-icon'
-      },
-      {
-        key: 'ownership_doc',
-        label: 'Ownership Document',
-        hint: 'Registered sale deed, patta, or land record (ROR)',
-        icon: '📜',
-        iconClass: 'own-icon'
-      },
-      {
-        key: 'tax_bill',
-        label: 'Property Tax Bill',
-        hint: 'Latest municipal property tax receipt',
-        icon: '🧾',
-        iconClass: 'tax-icon'
-      },
-      {
-        key: 'utility_bill',
-        label: 'Utility Bill',
-        hint: 'Electricity or water bill (last 3 months)',
-        icon: '💡',
-        iconClass: 'util-icon'
-      }
+      { key: 'govt_id',       labelKey: 'docGovtId',      hintKey: 'docGovtIdHint',      icon: '🪪', iconClass: 'id-icon'   },
+      { key: 'ownership_doc', labelKey: 'docOwnershipDoc', hintKey: 'docOwnershipDocHint',icon: '📜', iconClass: 'own-icon'  },
+      { key: 'tax_bill',      labelKey: 'docTaxBill',      hintKey: 'docTaxBillHint',     icon: '🧾', iconClass: 'tax-icon'  },
+      { key: 'utility_bill',  labelKey: 'docUtilityBill',  hintKey: 'docUtilityBillHint', icon: '💡', iconClass: 'util-icon' },
     ];
 
     // ── State ────────────────────────────────────────────────────
@@ -360,13 +501,13 @@
       const el = document.getElementById('statusBanner');
       if (verified === true) {
         el.className = 'status-banner verified';
-        el.innerHTML = `<div class="status-icon">✅</div><div class="status-text"><strong>Account Verified</strong>Your identity and documents have been verified by Raghav Realty.</div>`;
+        el.innerHTML = `<div class="status-icon">✅</div><div class="status-text"><strong>${t('verifiedTitle')}</strong>${t('verifiedBody')}</div>`;
       } else if (verified === false && notes) {
         el.className = 'status-banner rejected';
-        el.innerHTML = `<div class="status-icon">❌</div><div class="status-text"><strong>Verification Rejected</strong>${notes || 'Please re-upload corrected documents or contact us.'}</div>`;
+        el.innerHTML = `<div class="status-icon">❌</div><div class="status-text"><strong>${t('rejectedTitle')}</strong>${notes || t('rejectedDefault')}</div>`;
       } else {
         el.className = 'status-banner pending';
-        el.innerHTML = `<div class="status-icon">⏳</div><div class="status-text"><strong>Verification Pending</strong>Upload all required documents. Our team will review and verify your account.</div>`;
+        el.innerHTML = `<div class="status-icon">⏳</div><div class="status-text"><strong>${t('pendingTitle')}</strong>${t('pendingBody')}</div>`;
       }
     }
 
@@ -380,16 +521,16 @@
         card.className = `doc-card${existing ? ' has-file' : ''}`;
         card.id = `card-${dt.key}`;
 
-        let statusBadge = `<span class="doc-badge badge-required">Required</span>`;
+        let statusBadge = `<span class="doc-badge badge-required">${t('badgeRequired')}</span>`;
         let uploadSection = '';
 
         if (existing) {
           const badgeClass = existing.status === 'approved' ? 'badge-approved'
                            : existing.status === 'rejected' ? 'badge-rejected'
                            : 'badge-uploaded';
-          const badgeLabel = existing.status === 'approved' ? '✓ Approved'
-                           : existing.status === 'rejected' ? '✗ Needs re-upload'
-                           : '⏳ Uploaded — Under Review';
+          const badgeLabel = existing.status === 'approved' ? t('badgeApproved')
+                           : existing.status === 'rejected' ? t('badgeRejected')
+                           : t('badgeUploaded');
           statusBadge = `<span class="doc-badge ${badgeClass}">${badgeLabel}</span>`;
 
           uploadSection = `
@@ -409,8 +550,8 @@
           <div class="doc-card-header">
             <div class="doc-icon ${dt.iconClass}">${dt.icon}</div>
             <div>
-              <div class="doc-title">${dt.label}</div>
-              <div class="doc-hint">${dt.hint}</div>
+              <div class="doc-title">${t(dt.labelKey)}</div>
+              <div class="doc-hint">${t(dt.hintKey)}</div>
               ${statusBadge}
             </div>
           </div>
@@ -425,10 +566,10 @@
         <div class="upload-area" id="area-${key}">
           <input type="file" id="file-${key}" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect('${key}', this)">
           <div class="upload-icon">📁</div>
-          <div class="upload-text"><span>Choose file</span> or drag here<br>PDF, JPG, PNG — max 8 MB</div>
+          <div class="upload-text"><span>${t('chooseFile')}</span> ${t('dragHere')}<br>${t('fileLimit')}</div>
         </div>
         <div id="preview-${key}" style="display:none;"></div>
-        <button class="btn-upload" id="btn-${key}" onclick="uploadDoc('${key}')" disabled>Upload Document</button>
+        <button class="btn-upload" id="btn-${key}" onclick="uploadDoc('${key}')" disabled>${t('uploadBtn')}</button>
         <div class="progress-bar-wrap" id="progress-wrap-${key}"><div class="progress-bar" id="progress-${key}"></div></div>
         <div class="upload-status" id="status-${key}"></div>`;
     }
@@ -439,7 +580,7 @@
       const file = input.files[0];
       if (!file) return;
       if (file.size > 8 * 1024 * 1024) {
-        document.getElementById(`status-${key}`).textContent = 'File is too large (max 8 MB).';
+        document.getElementById(`status-${key}`).textContent = t('fileTooLarge');
         document.getElementById(`status-${key}`).className = 'upload-status error';
         input.value = '';
         return;
@@ -524,7 +665,7 @@
 
       try {
         // Step 1 — compress images
-        btn.textContent = 'Compressing…';
+        btn.textContent = t('compressing');
         const file = await compressImage(rawFile);
 
         // Step 2 — read first 32 bytes for server-side magic-bytes check
@@ -537,7 +678,7 @@
         const headerB64 = btoa(String.fromCharCode(...new Uint8Array(headerBuf)));
 
         // Step 3 — ask server for a signed upload URL
-        btn.textContent = 'Validating…';
+        btn.textContent = t('validating');
         const urlResp = await fetch('/api/upload-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -556,12 +697,12 @@
         progWrap.style.display = 'block';
         await uploadWithProgress(urlData.upload_url, file, pct => {
           progBar.style.width = `${pct}%`;
-          btn.textContent = `Uploading… ${pct}%`;
+          btn.textContent = `${t('uploading')} ${pct}%`;
         });
         progBar.style.width = '100%';
 
         // Step 5 — tell our API the upload is done so it records it in the DB
-        btn.textContent = 'Saving…';
+        btn.textContent = t('saving');
         const confResp = await fetch('/api/confirm-upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -571,7 +712,7 @@
         if (!confResp.ok) throw new Error(confData.error || 'Failed to save document record.');
 
         // Step 6 — update UI
-        status.textContent = '✓ Uploaded successfully!';
+        status.textContent = t('uploadSuccess');
         status.className   = 'upload-status success';
         existingDocs[key]  = confData.document;
         delete selectedFiles[key];
@@ -582,16 +723,17 @@
         status.className   = 'upload-status error';
         progWrap.style.display = 'none';
         btn.disabled = false;
-        btn.textContent = 'Upload Document';
+        btn.textContent = t('uploadBtn');
       }
     }
 
     loadMyDocs();
     loadMyBills();
+    applyStaticLang();
 
     // ── Bills ────────────────────────────────────────────────────
-    const BILL_ICONS  = { electricity: '⚡', gas: '🔥', water: '💧', other: '📋' };
-    const BILL_LABELS = { electricity: 'Electricity', gas: 'Gas', water: 'Water', other: 'Other' };
+    const BILL_ICONS     = { electricity: '⚡', gas: '🔥', water: '💧', other: '📋' };
+    const BILL_LABEL_KEYS = { electricity: 'billLabelElectricity', gas: 'billLabelGas', water: 'billLabelWater', other: 'billLabelOther' };
 
     async function loadMyBills() {
       try {
@@ -603,26 +745,27 @@
     }
 
     function renderBillsList(bills) {
+      cachedBills = bills;
       const el = document.getElementById('billsList');
       if (!bills.length) {
-        el.innerHTML = '<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">No bill claims submitted yet.</p>';
+        el.innerHTML = `<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">${t('noBills')}</p>`;
         return;
       }
       el.innerHTML = bills.map(b => {
         const badgeClass = b.status === 'approved' ? 'badge-approved'
                          : b.status === 'rejected'  ? 'badge-rejected'
                          : 'badge-uploaded';
-        const badgeLabel = b.status === 'approved' ? '✓ Approved — Cheque will be sent via money order'
-                         : b.status === 'rejected'  ? '✗ Rejected'
-                         : '⏳ Under Review';
+        const badgeLabel = b.status === 'approved' ? t('billApproved')
+                         : b.status === 'rejected'  ? t('billRejected')
+                         : t('billPending');
         let monthLabel = b.bill_month || '';
-        try { monthLabel = new Date(b.bill_month + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }); } catch (_) {}
+        try { monthLabel = new Date(b.bill_month + '-01').toLocaleDateString(lang === 'mr' ? 'mr-IN' : 'en-IN', { month: 'long', year: 'numeric' }); } catch (_) {}
         return `
           <div class="doc-card${b.status === 'approved' ? ' has-file' : ''}" style="margin-bottom:10px;">
             <div class="doc-card-header" style="margin-bottom:0;">
               <div class="doc-icon">${BILL_ICONS[b.bill_type] || '📋'}</div>
               <div>
-                <div class="doc-title">${BILL_LABELS[b.bill_type] || b.bill_type} — ${monthLabel}</div>
+                <div class="doc-title">${t(BILL_LABEL_KEYS[b.bill_type] || 'billLabelOther')} — ${monthLabel}</div>
                 <div class="doc-hint">📎 ${b.file_name}${b.claim_amount ? ` · ₹${Number(b.claim_amount).toLocaleString('en-IN')}` : ''}</div>
                 <span class="doc-badge ${badgeClass}">${badgeLabel}</span>
                 ${b.notes ? `<div style="font-size:11px;color:#666;margin-top:3px;">${b.notes}</div>` : ''}
@@ -647,16 +790,16 @@
       status.textContent = '';
       status.className = 'upload-status';
 
-      if (!bill_type)  { status.textContent = 'Please select a bill type.';     status.className = 'upload-status error'; return; }
-      if (!bill_month) { status.textContent = 'Please select the bill month.';  status.className = 'upload-status error'; return; }
-      if (!rawFile)    { status.textContent = 'Please choose a file to upload.'; status.className = 'upload-status error'; return; }
+      if (!bill_type)  { status.textContent = t('errBillType');  status.className = 'upload-status error'; return; }
+      if (!bill_month) { status.textContent = t('errBillMonth'); status.className = 'upload-status error'; return; }
+      if (!rawFile)    { status.textContent = t('errChooseFile');status.className = 'upload-status error'; return; }
 
       btn.disabled = true;
       progWrap.style.display = 'none';
       progBar.style.width = '0%';
 
       try {
-        btn.textContent = 'Compressing…';
+        btn.textContent = t('compressing');
         const file = await compressImage(rawFile);
 
         const headerBuf = await new Promise((res, rej) => {
@@ -666,7 +809,7 @@
         });
         const headerB64 = btoa(String.fromCharCode(...new Uint8Array(headerBuf)));
 
-        btn.textContent = 'Validating…';
+        btn.textContent = t('validating');
         const urlResp = await fetch('/api/upload-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -681,11 +824,11 @@
         progWrap.style.display = 'block';
         await uploadWithProgress(urlData.upload_url, file, pct => {
           progBar.style.width = `${pct}%`;
-          btn.textContent = `Uploading… ${pct}%`;
+          btn.textContent = `${t('uploading')} ${pct}%`;
         });
         progBar.style.width = '100%';
 
-        btn.textContent = 'Saving…';
+        btn.textContent = t('saving');
         const confResp = await fetch('/api/confirm-bill', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -705,8 +848,8 @@
         });
         document.getElementById('preview-bill').style.display = 'none';
         btn.disabled = true;
-        btn.textContent = 'Submit Bill Claim';
-        status.textContent = '✓ Bill claim submitted! We will review and send a cheque once approved.';
+        btn.textContent = t('submitBillBtn');
+        status.textContent = t('billSubmitOk');
         status.className = 'upload-status success';
 
         await loadMyBills();
@@ -716,7 +859,7 @@
         status.className   = 'upload-status error';
         progWrap.style.display = 'none';
         btn.disabled = false;
-        btn.textContent = 'Submit Bill Claim';
+        btn.textContent = t('submitBillBtn');
       }
     }
 
@@ -733,7 +876,7 @@
         const warnDelay   = Math.max(0, warnAt - now);
         const expireDelay = expiresAt - now;
         setTimeout(() => {
-          if (confirm('Your session will expire in 10 minutes. Click OK to stay logged in.')) {
+          if (confirm(t('sessionWarn'))) {
             // Redirect to login to get a fresh token
             logout();
           }
