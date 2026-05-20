@@ -237,6 +237,56 @@
         <li><strong>Utility Bill:</strong> Electricity or water bill from the last 3 months</li>
       </ul>
     </div>
+
+    <!-- ── Monthly Bills & Claims ─────────────────────────────────── -->
+    <div style="margin-top:36px;">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+        <div style="flex:1;height:1px;background:var(--gray-border);"></div>
+        <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;">Monthly Bills &amp; Claims</span>
+        <div style="flex:1;height:1px;background:var(--gray-border);"></div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;">Upload your monthly utility bills to submit a reimbursement claim. Once verified and approved, a cheque will be sent to you via money order.</p>
+
+      <!-- Submitted bills list -->
+      <div id="billsList" style="margin-bottom:16px;"></div>
+
+      <!-- Submit new bill form -->
+      <div class="doc-card" style="border-style:dashed;">
+        <div style="font-size:14px;font-weight:700;color:var(--black);margin-bottom:16px;">🧾 Submit a New Bill Claim</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:5px;">Bill Type *</label>
+            <select id="billType" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-border);border-radius:6px;font-size:13px;color:var(--black);background:var(--white);cursor:pointer;">
+              <option value="">Select type…</option>
+              <option value="electricity">⚡ Electricity</option>
+              <option value="gas">🔥 Gas</option>
+              <option value="water">💧 Water</option>
+              <option value="other">📋 Other</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:5px;">Bill Month *</label>
+            <input type="month" id="billMonth" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-border);border-radius:6px;font-size:13px;color:var(--black);">
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--black);margin-bottom:5px;">Claim Amount (₹) <span style="font-weight:400;color:var(--text-muted);">optional</span></label>
+          <input type="number" id="claimAmount" min="0" step="0.01" placeholder="e.g. 850.00" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-border);border-radius:6px;font-size:13px;color:var(--black);">
+        </div>
+
+        <div class="upload-area" id="area-bill">
+          <input type="file" id="file-bill" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect('bill', this)">
+          <div class="upload-icon">📁</div>
+          <div class="upload-text"><span>Choose bill file</span> or drag here<br>PDF, JPG, PNG — max 8 MB</div>
+        </div>
+        <div id="preview-bill" style="display:none;"></div>
+        <button class="btn-upload" id="btn-bill" onclick="submitBill()" disabled>Submit Bill Claim</button>
+        <div class="progress-bar-wrap" id="progress-wrap-bill"><div class="progress-bar" id="progress-bill"></div></div>
+        <div class="upload-status" id="status-bill"></div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -537,6 +587,138 @@
     }
 
     loadMyDocs();
+    loadMyBills();
+
+    // ── Bills ────────────────────────────────────────────────────
+    const BILL_ICONS  = { electricity: '⚡', gas: '🔥', water: '💧', other: '📋' };
+    const BILL_LABELS = { electricity: 'Electricity', gas: 'Gas', water: 'Water', other: 'Other' };
+
+    async function loadMyBills() {
+      try {
+        const res  = await fetch('/api/my-bills', { headers: { Authorization: `Bearer ${token}` } });
+        if (res.status === 401) { logout(); return; }
+        const data = await res.json();
+        renderBillsList(data.bills || []);
+      } catch (_) { renderBillsList([]); }
+    }
+
+    function renderBillsList(bills) {
+      const el = document.getElementById('billsList');
+      if (!bills.length) {
+        el.innerHTML = '<p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">No bill claims submitted yet.</p>';
+        return;
+      }
+      el.innerHTML = bills.map(b => {
+        const badgeClass = b.status === 'approved' ? 'badge-approved'
+                         : b.status === 'rejected'  ? 'badge-rejected'
+                         : 'badge-uploaded';
+        const badgeLabel = b.status === 'approved' ? '✓ Approved — Cheque will be sent via money order'
+                         : b.status === 'rejected'  ? '✗ Rejected'
+                         : '⏳ Under Review';
+        let monthLabel = b.bill_month || '';
+        try { monthLabel = new Date(b.bill_month + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }); } catch (_) {}
+        return `
+          <div class="doc-card${b.status === 'approved' ? ' has-file' : ''}" style="margin-bottom:10px;">
+            <div class="doc-card-header" style="margin-bottom:0;">
+              <div class="doc-icon">${BILL_ICONS[b.bill_type] || '📋'}</div>
+              <div>
+                <div class="doc-title">${BILL_LABELS[b.bill_type] || b.bill_type} — ${monthLabel}</div>
+                <div class="doc-hint">📎 ${b.file_name}${b.claim_amount ? ` · ₹${Number(b.claim_amount).toLocaleString('en-IN')}` : ''}</div>
+                <span class="doc-badge ${badgeClass}">${badgeLabel}</span>
+                ${b.notes ? `<div style="font-size:11px;color:#666;margin-top:3px;">${b.notes}</div>` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function submitBill() {
+      const rawFile      = selectedFiles['bill'];
+      const bill_type    = document.getElementById('billType').value;
+      const bill_month   = document.getElementById('billMonth').value;
+      const amtVal       = document.getElementById('claimAmount').value;
+      const claim_amount = amtVal ? parseFloat(amtVal) : null;
+
+      const btn      = document.getElementById('btn-bill');
+      const status   = document.getElementById('status-bill');
+      const progWrap = document.getElementById('progress-wrap-bill');
+      const progBar  = document.getElementById('progress-bill');
+
+      status.textContent = '';
+      status.className = 'upload-status';
+
+      if (!bill_type)  { status.textContent = 'Please select a bill type.';     status.className = 'upload-status error'; return; }
+      if (!bill_month) { status.textContent = 'Please select the bill month.';  status.className = 'upload-status error'; return; }
+      if (!rawFile)    { status.textContent = 'Please choose a file to upload.'; status.className = 'upload-status error'; return; }
+
+      btn.disabled = true;
+      progWrap.style.display = 'none';
+      progBar.style.width = '0%';
+
+      try {
+        btn.textContent = 'Compressing…';
+        const file = await compressImage(rawFile);
+
+        const headerBuf = await new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result); r.onerror = rej;
+          r.readAsArrayBuffer(file.slice(0, 32));
+        });
+        const headerB64 = btoa(String.fromCharCode(...new Uint8Array(headerBuf)));
+
+        btn.textContent = 'Validating…';
+        const urlResp = await fetch('/api/upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            doc_type: 'monthly_bill', file_name: file.name,
+            mime_type: file.type, file_size: file.size, file_header: headerB64
+          })
+        });
+        const urlData = await urlResp.json();
+        if (!urlResp.ok) throw new Error(urlData.error || 'Could not get upload URL.');
+
+        progWrap.style.display = 'block';
+        await uploadWithProgress(urlData.upload_url, file, pct => {
+          progBar.style.width = `${pct}%`;
+          btn.textContent = `Uploading… ${pct}%`;
+        });
+        progBar.style.width = '100%';
+
+        btn.textContent = 'Saving…';
+        const confResp = await fetch('/api/confirm-bill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            file_path: urlData.file_path, file_name: file.name,
+            bill_type, bill_month, claim_amount
+          })
+        });
+        const confData = await confResp.json();
+        if (!confResp.ok) throw new Error(confData.error || 'Failed to save bill claim.');
+
+        // Reset form
+        delete selectedFiles['bill'];
+        ['file-bill', 'billType', 'billMonth', 'claimAmount'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+        document.getElementById('preview-bill').style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = 'Submit Bill Claim';
+        status.textContent = '✓ Bill claim submitted! We will review and send a cheque once approved.';
+        status.className = 'upload-status success';
+
+        await loadMyBills();
+
+      } catch (err) {
+        status.textContent = err.message;
+        status.className   = 'upload-status error';
+        progWrap.style.display = 'none';
+        btn.disabled = false;
+        btn.textContent = 'Submit Bill Claim';
+      }
+    }
 
     // ── Session expiry warning ───────────────────────────────────
     // Token lasts 24 h. Warn the owner 10 min before expiry.

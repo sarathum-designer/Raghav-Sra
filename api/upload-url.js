@@ -3,7 +3,7 @@
 const supabase = require('./_client');
 const { verifyToken, validateMagicBytes, sanitize, writeAuditLog, getIP } = require('./_security');
 
-const ALLOWED_TYPES = ['govt_id', 'ownership_doc', 'tax_bill', 'utility_bill'];
+const ALLOWED_TYPES = ['govt_id', 'ownership_doc', 'tax_bill', 'utility_bill', 'monthly_bill'];
 const ALLOWED_MIME  = ['image/jpeg', 'image/png', 'application/pdf'];
 const MAX_BYTES     = 8 * 1024 * 1024; // 8 MB
 
