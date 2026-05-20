@@ -148,8 +148,12 @@
       <div class="error-box" id="loginError"></div>
       <form id="adminLoginForm">
         <div class="form-group">
-          <label for="adminPass">Admin Password</label>
-          <input type="password" id="adminPass" placeholder="Enter admin password" required>
+          <label for="adminUser">Username</label>
+          <input type="text" id="adminUser" placeholder="Enter your username" autocomplete="off" required>
+        </div>
+        <div class="form-group">
+          <label for="adminPass">Password</label>
+          <input type="password" id="adminPass" placeholder="Enter your password" required>
         </div>
         <button type="submit" class="btn btn-full" id="loginBtn">Login</button>
       </form>
@@ -249,7 +253,10 @@
       const res  = await fetch('/api/admin-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: document.getElementById('adminPass').value })
+        body: JSON.stringify({
+            username: document.getElementById('adminUser').value.trim().toLowerCase(),
+            password: document.getElementById('adminPass').value
+          })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Wrong password.');

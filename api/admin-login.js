@@ -12,32 +12,38 @@ module.exports = async (req, res) => {
 
   try {
     const ip       = getIP(req);
+    const username = sanitize(req.body?.username || '', 50).toLowerCase();
     const password = sanitize(req.body?.password || '', 128);
-    if (!password) return res.status(400).json({ error: 'Password is required.' });
 
+    if (!username || !password)
+      return res.status(400).json({ error: 'Username and password are required.' });
+
+    // Rate limit keyed to IP so username enumeration isn't possible
     const rateLimitKey = `admin_${ip}`;
     if (await isRateLimited(rateLimitKey)) {
       await writeAuditLog('admin_login_blocked', null, 'admin', null, {}, ip);
       return res.status(429).json({ error: 'Too many failed attempts. Try again after 15 minutes.' });
     }
 
+    // Look up admin by username
     const { data: admin, error } = await supabase
       .from('admins')
       .select('id, username, display_name, password_hash')
-      .limit(1)
+      .eq('username', username)
       .single();
 
     const dummyHash = '$2a$10$invalidhashpadding000000000000000000000000000000000000';
     const match = await bcrypt.compare(password, admin?.password_hash || dummyHash);
 
+    // Fail if username not found OR password wrong — same message (no enumeration)
     if (error || !admin || !match) {
       await recordAttempt(rateLimitKey, ip, false);
-      await writeAuditLog('admin_login_failed', null, 'admin', null, {}, ip);
-      return res.status(401).json({ error: 'Incorrect password.' });
+      await writeAuditLog('admin_login_failed', null, 'admin', null, { username }, ip);
+      return res.status(401).json({ error: 'Incorrect username or password.' });
     }
 
     await clearAttempts(rateLimitKey);
-    await writeAuditLog('admin_login_success', admin.id, 'admin', null, {}, ip);
+    await writeAuditLog('admin_login_success', admin.id, 'admin', null, { username }, ip);
 
     const token = jwt.sign(
       { id: admin.id, role: 'admin', name: admin.display_name },
