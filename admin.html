@@ -46,6 +46,8 @@
     .btn-outline:hover { background: var(--red-light); }
     .btn-green { background: var(--green); }
     .btn-green:hover { background: #1E8449; }
+    .btn-blue  { background: var(--blue); color: var(--white); }
+    .btn-blue:hover:not(:disabled) { background: #2471A3; }
     .error-box { background: var(--red-light); color: var(--red); border: 1px solid #F5C6C2; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
     footer { text-align: center; padding: 16px; font-size: 12px; color: #AAA; border-top: 1px solid var(--gray-border); background: var(--white); }
 
@@ -381,6 +383,7 @@
               ${d.status}
             </span>
             ${d.file_url ? `<a href="${d.file_url}" target="_blank" class="btn btn-sm btn-outline" style="text-decoration:none;">View</a>` : ''}
+            ${d.file_url ? `<button class="btn btn-sm btn-blue" onclick="downloadDoc('${d.id}', this)">⬇ Download</button>` : ''}
           </div>
         </div>`).join('');
     }
@@ -417,6 +420,35 @@
     } catch (e) {
       alert(e.message);
       btnA.disabled = btnR.disabled = false;
+    }
+  }
+
+  // ── Download individual document ────────────────────────────
+  async function downloadDoc(docId, btn) {
+    if (!activeOwner) return;
+    const doc = (activeOwner.documents || []).find(d => d.id === docId);
+    if (!doc || !doc.file_url) return;
+
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    try {
+      const res = await fetch(doc.file_url);
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const blob = await res.blob();
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = doc.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      alert('Download failed: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
     }
   }
 
